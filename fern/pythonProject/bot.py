@@ -17,8 +17,11 @@ MANAGER_USER_ID = 875257348178980875 # 서버 관리자 아이디
 sentId = [1125042802124927007, 931800387164454912, 1251068997428842559] # 보냈던 ID
 channel = bot.get_channel(1341586962385211402)
 
+formURL = "https://forms.office.com/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__jCBoBhURTBVWVFXOVNJSTNRVVA2NjFSSjZURERLUi4u"
+
 @bot.event
 async def on_ready():
+    print("로그인 성공!")
     global channel
     # 봇이 준비되었을 때 채널을 한 번 확인
     channel = bot.get_channel(1341586962385211402)
@@ -128,6 +131,19 @@ async def 초대인원_autocomplete(interaction: discord.Interaction, current: s
         discord.app_commands.Choice(name=choice, value=choice)
         for choice in choices if current.lower() in choice.lower()
     ]
+@bot.tree.command(name="모집-정보", description="운영진 모집 정보를 확인합니다.")
+async def button_command(interaction: discord.Interaction):
+    # 링크 버튼 만들기
+    button = discord.ui.Button(label="운영진 신청", style=discord.ButtonStyle.link, url=formURL)
+    view = discord.ui.View()
+    view.add_item(button)
 
+    # 버튼이 포함된 메시지 전송
+    await interaction.response.send_message("# 운영진 모집 안내 \n"
+                                            "모집 기간 : 2025-03-05 - 2025-03-14 10일간\n"
+                                            "모집 인원 : 0명\n"
+                                            "아래 버튼을 사용하여 신청해 주세요.\n"
+                                            "*\"/모집-정보\"를 사용하여 이 문구를 출력할 수 있습니다.*", view=view)
+    print("운영진 모집 정보가 사용되었습니다.")
 
 bot.run('-')
