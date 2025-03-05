@@ -12,23 +12,26 @@ intents.message_content = True  # 메시지 내용을 읽고 쓸 수 있는 권�
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-MESSAGE_ID = 1341841622920597608  # 메시지 ID
+NOTICE_MESSAGE_ID = 1341841622920597608  # 공지 메시지 ID
+NOTICE_CHANNEL_ID = bot.get_channel(1341840730221580340) # 공지 채널 ID
 MANAGER_USER_ID = 875257348178980875 # 서버 관리자 아이디
 sentId = [1125042802124927007, 931800387164454912, 1251068997428842559] # 보냈던 ID
-channel = bot.get_channel(1341586962385211402)
+channel = bot.get_channel(1341586962385211402) # 일반 채널 ID
 
 formURL = "https://forms.office.com/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__jCBoBhURTBVWVFXOVNJSTNRVVA2NjFSSjZURERLUi4u"
 
 @bot.event
 async def on_ready():
     print("로그인 성공!")
-    global channel
+    global channel, NOTICE_CHANNEL_ID
     # 봇이 준비되었을 때 채널을 한 번 확인
     channel = bot.get_channel(1341586962385211402)
-    print(channel)
+    NOTICE_CHANNEL_ID = bot.get_channel(1341840730221580340)
+    print(str(channel) + ", " + str(NOTICE_CHANNEL_ID))
     await bot.tree.sync()
     for command in bot.tree.get_commands():
         print(f"Command: {command.name}")
+
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -39,7 +42,7 @@ async def on_raw_reaction_add(payload):
         return
 
     # 반응한 메시지 ID가 특정 메시지와 일치할 때
-    if payload.message_id == MESSAGE_ID:
+    if payload.message_id == NOTICE_MESSAGE_ID:
         # 유저 ID 출력
         print(f"이모지에 반응한 사용자 ID: {payload.user_id}")
         if(not payload.user_id in sentId):
@@ -57,6 +60,7 @@ async def on_raw_reaction_add(payload):
             except Exception as e:
                 print(f"DM을 보내는 중 오류 발생: {e}")
 
+
 @bot.event
 async def on_member_join(member):
     print(channel)
@@ -66,6 +70,7 @@ async def on_member_join(member):
     await channel.send(f"{member.display_name}님 엘프 클럽에 오신 것을 환영합니다!\n"
                        "규칙을 읽고 :white_check_mark:이모지에 반응을 추가해 주신다면 관리자 검토 후 '인증됨' 역할을 부여해 드리겠습니다.")
     await manager.send("관리자님! @" + member.display_name + "님이 서버에 입장하셨습니다! 확인해 주세요.")
+
 
 @bot.tree.command(name="게임-초대-보내기", description="친구에게 게임 초대를 전송합니다.")
 @app_commands.describe(
@@ -77,7 +82,7 @@ async def on_member_join(member):
 async def invite(interaction: discord.Interaction, 게임: str, 초대인원: str, 초대대상: Union[discord.User, discord.Role] = None, 남길메시지: str = "없음"):
     user_id = interaction.user.id  # 명령어를 호출한 사람의 ID
     user_display_name = interaction.user.display_name # 명령어를 호출한 사람의 표시 이름
-    channel_id = bot.get_channel(interaction.channel.id) # 호출한 채널의 ID
+    await interaction.response.defer()
     if( 게임 in [
         "Grand Theft Auto V",
         "PUBG BATTLEGROUNDS",
@@ -96,18 +101,19 @@ async def invite(interaction: discord.Interaction, 게임: str, 초대인원: st
             await i.send(user_display_name + "님이  " + 게임 + "의 초대를 보냈습니다. 엘프 클럽을 확인해 보시는 건 어떨까요?\n" +
                          user_display_name + "님이 남긴 메시지: \"" + 남길메시지 + "\"")
     else:
-        send_user_id = await bot.fetch_user(초대대상.id)
-        await send_user_id.send(user_display_name + "님이  " + 게임 + "의 초대를 보냈습니다. 엘프 클럽을 확인해 보시는 건 어떨까요?\n" +
-                     user_display_name + "님이 남긴 메시지: \"" + 남길메시지 + "\"")
+        try:
+            send_user_id = await bot.fetch_user(초대대상.id)
+            await send_user_id.send(user_display_name + "님이  " + 게임 + "의 초대를 보냈습니다. 엘프 클럽을 확인해 보시는 건 어떨까요?\n" +
+                         user_display_name + "님이 남긴 메시지: \"" + 남길메시지 + "\"")
+        except:
+            print("초대 전송 실패")
 
     if(not 초대대상 == None):
-        await interaction.channel.send("초대 전송이 완료되었어요.")
-        await channel_id.send("# 초대 전송 완료!\n" + 게임 + "의 초대가 정상적으로 전송이 완료되었습니다. 친구들을 기다려 보세요!\n 사용: " + user_display_name)
+        await interaction.followup.send("# 초대 전송 완료!\n" + 게임 + "의 초대가 정상적으로 전송이 완료되었습니다. 친구들을 기다려 보세요!")
         print(user_display_name + "님이 " + 게임 + "을/를 " + str(초대대상) + "에게 초대를 보냈습니다!")
     else:
         print("초대 보내기를 실패했습니다.")
-        await interaction.channel.send("초대 전송에 실패했어요.")
-        await channel_id.send("# 초대 전송 실패\n초대가 전송이 되지 않았어요ㅜ.ㅜ 서버에서 지원하지 않는 게임이거나, 초대 인원이 1명이라면 초대 대상을 입력하세요.\n 사용: " + user_display_name)
+        await interaction.followup.send("# 초대 전송 실패\n초대가 전송이 되지 않았어요ㅜ.ㅜ 서버에서 지원하지 않는 게임이거나, 초대 인원이 1명이라면 초대 대상을 입력하세요.")
 
 @invite.autocomplete("초대인원")
 async def 초대인원_autocomplete(interaction: discord.Interaction, current: str):
@@ -131,6 +137,8 @@ async def 초대인원_autocomplete(interaction: discord.Interaction, current: s
         discord.app_commands.Choice(name=choice, value=choice)
         for choice in choices if current.lower() in choice.lower()
     ]
+
+
 @bot.tree.command(name="모집-정보", description="운영진 모집 정보를 확인합니다.")
 async def button_command(interaction: discord.Interaction):
     # 링크 버튼 만들기
@@ -145,5 +153,31 @@ async def button_command(interaction: discord.Interaction):
                                             "아래 버튼을 사용하여 신청해 주세요.\n"
                                             "*\"/모집-정보\"를 사용하여 이 문구를 출력할 수 있습니다.*", view=view)
     print("운영진 모집 정보가 사용되었습니다.")
+
+
+@bot.tree.command(name="규칙-읽기", description="규칙을 가져옵니다.")
+async def fetch_saved_message(interaction: discord.Interaction):
+    if not isinstance(NOTICE_CHANNEL_ID, discord.TextChannel):
+        await interaction.response.send_message("유효한 텍스트 채널이 아닙니다.", ephemeral=True)
+        return
+
+    try:
+        message = await NOTICE_CHANNEL_ID.fetch_message(NOTICE_MESSAGE_ID)
+        await interaction.response.send_message(message.content)
+        print("규칙 읽기가 사용되었습니다.")
+    except discord.NotFound:
+        await interaction.response.send_message("해당 메시지를 찾을 수 없습니다.", ephemeral=True)
+    except discord.Forbidden:
+        await interaction.response.send_message("이 메시지를 가져올 권한이 없습니다.", ephemeral=True)
+    except discord.HTTPException:
+        await interaction.response.send_message("메시지를 가져오는 중 오류가 발생했습니다.", ephemeral=True)
+
+
+@bot.tree.command(name="최근-공지", description="가장 최근 공지를 가져옵니다.")
+async def recent_message(interaction: discord.Interaction):
+    # 가장 최근 1개의 메시지를 가져옵니다
+    async for recent_message in NOTICE_CHANNEL_ID.history(limit=1):
+        await interaction.response.send_message(recent_message.content)
+
 
 bot.run('-')
